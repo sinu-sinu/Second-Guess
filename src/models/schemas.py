@@ -34,6 +34,29 @@ class ProposerOutput(BaseModel):
     justification: str = Field(..., description="Reasoning for the recommendation based on provided context")
 
 
+class FailureScenario(BaseModel):
+    """Schema for a specific failure scenario."""
+    description: str = Field(..., description="Specific failure scenario description")
+    trigger: str = Field(..., description="What would trigger this failure")
+    impact_severity: str = Field(..., description="Severity of impact: low, medium, high, critical")
+
+
+class RiskBreakdown(BaseModel):
+    """Schema for risk assessment across four dimensions."""
+    execution: int = Field(..., ge=0, le=10, description="Execution risk: what could fail technically (0-10)")
+    market_customer: int = Field(..., ge=0, le=10, description="Market & customer impact: who gets hurt (0-10)")
+    reputational: int = Field(..., ge=0, le=10, description="Reputational downside: public failure narrative (0-10)")
+    opportunity_cost: int = Field(..., ge=0, le=10, description="Opportunity cost: what else could be done (0-10)")
+
+
+class DevilsAdvocateOutput(BaseModel):
+    """Output schema for Devil's Advocate agent."""
+    counterarguments: List[str] = Field(..., description="Arguments challenging the Proposer's recommendation")
+    failure_scenarios: List[FailureScenario] = Field(..., description="Specific failure scenarios with triggers")
+    high_risk_assumptions: List[str] = Field(..., description="Unverified assumptions flagged as high-risk")
+    risk_breakdown: RiskBreakdown = Field(..., description="Risk assessment across four dimensions")
+
+
 class DecisionRun(BaseModel):
     """Complete decision evaluation run record."""
     decision_id: str = Field(..., description="Unique decision identifier (dec_YYYYMMDD_<type>)")
@@ -43,6 +66,7 @@ class DecisionRun(BaseModel):
     context_provided: Optional[str] = Field(None, description="User-provided context")
     context_analysis: ContextAnalysis = Field(..., description="Context analysis output")
     proposer_output: Optional[ProposerOutput] = Field(None, description="Proposer recommendation output")
+    devils_advocate_output: Optional[DevilsAdvocateOutput] = Field(None, description="Devil's Advocate critique output")
 
     class Config:
         json_schema_extra = {
@@ -81,3 +105,5 @@ class DecisionResponse(BaseModel):
     context_provided: Optional[str]
     context_analysis: ContextAnalysis
     proposer_output: Optional[ProposerOutput] = Field(None, description="Proposer recommendation output")
+    devils_advocate_output: Optional[DevilsAdvocateOutput] = Field(None, description="Devil's Advocate critique output")
+    risk_breakdown: Optional[RiskBreakdown] = Field(None, description="Risk breakdown across dimensions")
