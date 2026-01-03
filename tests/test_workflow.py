@@ -23,6 +23,7 @@ def test_workflow_end_to_end():
     assert "context_analysis" in result
     assert "proposer_output" in result
     assert "devils_advocate_output" in result
+    assert "judge_output" in result
 
     # Verify context analysis
     context_analysis = result["context_analysis"]
@@ -49,6 +50,17 @@ def test_workflow_end_to_end():
     assert hasattr(devils_advocate_output, 'high_risk_assumptions')
     assert hasattr(devils_advocate_output, 'risk_breakdown')
 
+    # Verify judge output
+    judge_output = result["judge_output"]
+    assert judge_output is not None
+    assert hasattr(judge_output, 'proposer_strength')
+    assert hasattr(judge_output, 'advocate_strength')
+    assert hasattr(judge_output, 'weak_claims')
+    assert hasattr(judge_output, 'unsupported_claims')
+    assert hasattr(judge_output, 'reasoning_assessment')
+    assert 0 <= judge_output.proposer_strength <= 10
+    assert 0 <= judge_output.advocate_strength <= 10
+
     print(f"\n[PASS] Workflow end-to-end test passed")
     print(f"  Decision Type: {context_analysis.decision_type}")
     print(f"  Completeness: {context_analysis.completeness_score}%")
@@ -56,6 +68,7 @@ def test_workflow_end_to_end():
     print(f"  Confidence: {proposer_output.confidence}")
     print(f"  Counterarguments: {len(devils_advocate_output.counterarguments)}")
     print(f"  Risk Breakdown: exec={devils_advocate_output.risk_breakdown.execution}, market={devils_advocate_output.risk_breakdown.market_customer}")
+    print(f"  Proposer Strength: {judge_output.proposer_strength}/10, Advocate Strength: {judge_output.advocate_strength}/10")
 
 
 def test_workflow_with_no_context():
