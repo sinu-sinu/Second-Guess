@@ -28,12 +28,16 @@ class LangfuseClient:
             # Check if Langfuse is configured
             public_key = os.getenv("LANGFUSE_PUBLIC_KEY")
             secret_key = os.getenv("LANGFUSE_SECRET_KEY")
-            host = os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
+            host = os.getenv("LANGFUSE_HOST", "http://localhost:3000")
 
             if not public_key or not secret_key:
                 print("[WARNING] Langfuse not configured. Set LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY.")
                 cls._enabled = False
                 return None
+
+            if not host:
+                print("[WARNING] LANGFUSE_HOST not set. Using default: http://localhost:3000")
+                host = "http://localhost:3000"
 
             try:
                 cls._instance = Langfuse(
@@ -42,8 +46,10 @@ class LangfuseClient:
                     host=host
                 )
                 print(f"[INFO] Langfuse client initialized: {host}")
+                print(f"[INFO] Self-hosted: {not host.startswith('https://cloud.langfuse.com')}")
             except Exception as e:
                 print(f"[WARNING] Failed to initialize Langfuse: {e}")
+                print(f"[INFO] Make sure your Langfuse instance is running at: {host}")
                 cls._enabled = False
                 return None
 
