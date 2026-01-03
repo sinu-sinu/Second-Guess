@@ -24,6 +24,8 @@ def test_workflow_end_to_end():
     assert "proposer_output" in result
     assert "devils_advocate_output" in result
     assert "judge_output" in result
+    assert "confidence_output" in result
+    assert "final_recommendation" in result
 
     # Verify context analysis
     context_analysis = result["context_analysis"]
@@ -61,14 +63,34 @@ def test_workflow_end_to_end():
     assert 0 <= judge_output.proposer_strength <= 10
     assert 0 <= judge_output.advocate_strength <= 10
 
+    # Verify confidence output
+    confidence_output = result["confidence_output"]
+    assert confidence_output is not None
+    assert hasattr(confidence_output, 'initial_confidence')
+    assert hasattr(confidence_output, 'adjusted_confidence')
+    assert hasattr(confidence_output, 'delta')
+    assert hasattr(confidence_output, 'penalties')
+    assert hasattr(confidence_output, 'improvements')
+    assert 0 <= confidence_output.initial_confidence <= 100
+    assert 0 <= confidence_output.adjusted_confidence <= 100
+
+    # Verify final recommendation
+    final_recommendation = result["final_recommendation"]
+    assert final_recommendation is not None
+    assert isinstance(final_recommendation, str)
+    assert any(keyword in final_recommendation for keyword in ["PROCEED", "CONDITIONAL", "DELAY"])
+
     print(f"\n[PASS] Workflow end-to-end test passed")
     print(f"  Decision Type: {context_analysis.decision_type}")
     print(f"  Completeness: {context_analysis.completeness_score}%")
     print(f"  Recommendation: {proposer_output.recommendation}")
-    print(f"  Confidence: {proposer_output.confidence}")
+    print(f"  Initial Confidence: {proposer_output.confidence}")
     print(f"  Counterarguments: {len(devils_advocate_output.counterarguments)}")
     print(f"  Risk Breakdown: exec={devils_advocate_output.risk_breakdown.execution}, market={devils_advocate_output.risk_breakdown.market_customer}")
     print(f"  Proposer Strength: {judge_output.proposer_strength}/10, Advocate Strength: {judge_output.advocate_strength}/10")
+    print(f"  Adjusted Confidence: {confidence_output.adjusted_confidence}% (delta: {confidence_output.delta})")
+    print(f"  Penalties Applied: {len(confidence_output.penalties)}")
+    print(f"  Final Recommendation: {final_recommendation.split(chr(10))[0]}")
 
 
 def test_workflow_with_no_context():
