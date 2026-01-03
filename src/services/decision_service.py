@@ -44,7 +44,7 @@ class DecisionService:
         Returns:
             DecisionResponse with evaluation results
         """
-        # Run workflow (Context Analyzer -> Proposer -> Devil's Advocate -> Judge)
+        # Run workflow (Context Analyzer -> Proposer -> Devil's Advocate -> Judge -> Confidence Estimator)
         final_state = self.workflow.run(
             decision=decision_input.decision,
             context=decision_input.context
@@ -54,6 +54,8 @@ class DecisionService:
         proposer_output = final_state["proposer_output"]
         devils_advocate_output = final_state["devils_advocate_output"]
         judge_output = final_state["judge_output"]
+        confidence_output = final_state["confidence_output"]
+        final_recommendation = final_state["final_recommendation"]
 
         # Generate decision ID (new decision gets version 1)
         decision_id = self._generate_decision_id(context_analysis.decision_type)
@@ -70,7 +72,9 @@ class DecisionService:
             context_analysis=context_analysis,
             proposer_output=proposer_output,
             devils_advocate_output=devils_advocate_output,
-            judge_output=judge_output
+            judge_output=judge_output,
+            confidence_output=confidence_output,
+            final_recommendation=final_recommendation
         )
 
         # Store in database
@@ -96,6 +100,8 @@ class DecisionService:
             proposer_output=decision_run.proposer_output,
             devils_advocate_output=decision_run.devils_advocate_output,
             judge_output=decision_run.judge_output,
+            confidence_output=decision_run.confidence_output,
+            final_recommendation=decision_run.final_recommendation,
             risk_breakdown=decision_run.devils_advocate_output.risk_breakdown if decision_run.devils_advocate_output else None
         )
 
@@ -121,5 +127,7 @@ class DecisionService:
             proposer_output=decision_run.proposer_output,
             devils_advocate_output=decision_run.devils_advocate_output,
             judge_output=decision_run.judge_output,
+            confidence_output=decision_run.confidence_output,
+            final_recommendation=decision_run.final_recommendation,
             risk_breakdown=decision_run.devils_advocate_output.risk_breakdown if decision_run.devils_advocate_output else None
         )
