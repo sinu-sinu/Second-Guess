@@ -22,6 +22,7 @@ def test_workflow_end_to_end():
     assert "context" in result
     assert "context_analysis" in result
     assert "proposer_output" in result
+    assert "devils_advocate_output" in result
 
     # Verify context analysis
     context_analysis = result["context_analysis"]
@@ -40,11 +41,21 @@ def test_workflow_end_to_end():
     assert hasattr(proposer_output, 'confidence')
     assert hasattr(proposer_output, 'justification')
 
+    # Verify devil's advocate output
+    devils_advocate_output = result["devils_advocate_output"]
+    assert devils_advocate_output is not None
+    assert hasattr(devils_advocate_output, 'counterarguments')
+    assert hasattr(devils_advocate_output, 'failure_scenarios')
+    assert hasattr(devils_advocate_output, 'high_risk_assumptions')
+    assert hasattr(devils_advocate_output, 'risk_breakdown')
+
     print(f"\n[PASS] Workflow end-to-end test passed")
     print(f"  Decision Type: {context_analysis.decision_type}")
     print(f"  Completeness: {context_analysis.completeness_score}%")
     print(f"  Recommendation: {proposer_output.recommendation}")
     print(f"  Confidence: {proposer_output.confidence}")
+    print(f"  Counterarguments: {len(devils_advocate_output.counterarguments)}")
+    print(f"  Risk Breakdown: exec={devils_advocate_output.risk_breakdown.execution}, market={devils_advocate_output.risk_breakdown.market_customer}")
 
 
 def test_workflow_with_no_context():
