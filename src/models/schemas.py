@@ -57,6 +57,29 @@ class DevilsAdvocateOutput(BaseModel):
     risk_breakdown: RiskBreakdown = Field(..., description="Risk assessment across four dimensions")
 
 
+class WeakClaim(BaseModel):
+    """Schema for a weak or poorly supported claim."""
+    source: str = Field(..., description="Source of claim: proposer or advocate")
+    claim: str = Field(..., description="The weak claim statement")
+    weakness_reason: str = Field(..., description="Why this claim is weak (vague, generic, illogical)")
+
+
+class UnsupportedClaim(BaseModel):
+    """Schema for a claim not backed by provided context."""
+    source: str = Field(..., description="Source of claim: proposer or advocate")
+    claim: str = Field(..., description="The unsupported claim statement")
+    missing_evidence: str = Field(..., description="What evidence is missing to support this claim")
+
+
+class JudgeOutput(BaseModel):
+    """Output schema for Judge agent."""
+    proposer_strength: int = Field(..., ge=0, le=10, description="Reasoning quality of Proposer (0-10)")
+    advocate_strength: int = Field(..., ge=0, le=10, description="Reasoning quality of Devil's Advocate (0-10)")
+    weak_claims: List[WeakClaim] = Field(..., description="Weak or vague claims identified")
+    unsupported_claims: List[UnsupportedClaim] = Field(..., description="Claims not backed by provided context")
+    reasoning_assessment: str = Field(..., description="Overall assessment of reasoning quality from both sides")
+
+
 class DecisionRun(BaseModel):
     """Complete decision evaluation run record."""
     decision_id: str = Field(..., description="Unique decision identifier (dec_YYYYMMDD_<type>)")
@@ -67,6 +90,7 @@ class DecisionRun(BaseModel):
     context_analysis: ContextAnalysis = Field(..., description="Context analysis output")
     proposer_output: Optional[ProposerOutput] = Field(None, description="Proposer recommendation output")
     devils_advocate_output: Optional[DevilsAdvocateOutput] = Field(None, description="Devil's Advocate critique output")
+    judge_output: Optional[JudgeOutput] = Field(None, description="Judge evaluation output")
 
     class Config:
         json_schema_extra = {
@@ -106,4 +130,5 @@ class DecisionResponse(BaseModel):
     context_analysis: ContextAnalysis
     proposer_output: Optional[ProposerOutput] = Field(None, description="Proposer recommendation output")
     devils_advocate_output: Optional[DevilsAdvocateOutput] = Field(None, description="Devil's Advocate critique output")
+    judge_output: Optional[JudgeOutput] = Field(None, description="Judge evaluation output")
     risk_breakdown: Optional[RiskBreakdown] = Field(None, description="Risk breakdown across dimensions")
