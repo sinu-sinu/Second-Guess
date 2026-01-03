@@ -48,7 +48,12 @@ class DecisionService:
         Returns:
             DecisionResponse with evaluation results
         """
+        # Generate decision ID first for tracing
+        timestamp = datetime.utcnow()
+        context_analysis_preview = None  # Will get actual value from workflow
+
         # Run workflow (Context Analyzer -> Proposer -> Devil's Advocate -> Judge -> Confidence Estimator)
+        # Note: We'll generate proper decision_id after getting decision_type from context analysis
         final_state = self.workflow.run(
             decision=decision_input.decision,
             context=decision_input.context
@@ -174,10 +179,15 @@ class DecisionService:
                 f"Expected: '{latest_run.decision}', Got: '{decision_input.decision}'"
             )
 
+        # Auto-increment version number first for tracing
+        next_version = self._get_next_version(db, decision_id)
+
         # Run workflow with updated context (fresh evaluation, no memory from previous)
         final_state = self.workflow.run(
             decision=decision_input.decision,
-            context=decision_input.context
+            context=decision_input.context,
+            decision_id=decision_id,
+            version=next_version
         )
 
         context_analysis = final_state["context_analysis"]
@@ -187,8 +197,7 @@ class DecisionService:
         confidence_output = final_state["confidence_output"]
         final_recommendation = final_state["final_recommendation"]
 
-        # Auto-increment version number
-        next_version = self._get_next_version(db, decision_id)
+        # Version number already set above for tracing
         timestamp = datetime.utcnow()
 
         # Create decision run record for new version
