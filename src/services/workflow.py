@@ -2,11 +2,12 @@
 from typing import TypedDict, Optional
 from langgraph.graph import StateGraph, END
 
-from src.models.schemas import ContextAnalysis, ProposerOutput, DevilsAdvocateOutput, JudgeOutput
+from src.models.schemas import ContextAnalysis, ProposerOutput, DevilsAdvocateOutput, JudgeOutput, ConfidenceOutput
 from src.agents.context_analyzer import ContextAnalyzerAgent
 from src.agents.proposer import ProposerAgent
 from src.agents.devils_advocate import DevilsAdvocateAgent
 from src.agents.judge import JudgeAgent
+from src.agents.confidence_estimator import ConfidenceEstimatorAgent
 
 
 class DecisionState(TypedDict):
@@ -17,6 +18,8 @@ class DecisionState(TypedDict):
     proposer_output: Optional[ProposerOutput]
     devils_advocate_output: Optional[DevilsAdvocateOutput]
     judge_output: Optional[JudgeOutput]
+    confidence_output: Optional[ConfidenceOutput]
+    final_recommendation: Optional[str]
 
 
 class DecisionWorkflow:
@@ -28,6 +31,7 @@ class DecisionWorkflow:
         self.proposer = ProposerAgent()
         self.devils_advocate = DevilsAdvocateAgent()
         self.judge = JudgeAgent()
+        self.confidence_estimator = ConfidenceEstimatorAgent()
         self.graph = self._build_graph()
 
     def _analyze_context(self, state: DecisionState) -> DecisionState:
@@ -72,6 +76,27 @@ class DecisionWorkflow:
         state["judge_output"] = judge_output
         return state
 
+    def _estimate_confidence(self, state: DecisionState) -> DecisionState:
+        """Node: Run Confidence Estimator Agent."""
+        confidence_output = self.confidence_estimator.estimate(
+            context_analysis=state["context_analysis"],
+            proposer_output=state["proposer_output"],
+            devils_advocate_output=state["devils_advocate_output"],
+            judge_output=state["judge_output"]
+        )
+        state["confidence_output"] = confidence_output
+
+        # Generate final recommendation
+        final_recommendation = self.confidence_estimator.generate_final_recommendation(
+            confidence_output=confidence_output,
+            proposer_output=state["proposer_output"],
+            devils_advocate_output=state["devils_advocate_output"],
+            context_analysis=state["context_analysis"]
+        )
+        state["final_recommendation"] = final_recommendation
+
+        return state
+
     def _build_graph(self) -> StateGraph:
         """Build the LangGraph workflow."""
         # Create graph
@@ -82,13 +107,15 @@ class DecisionWorkflow:
         workflow.add_node("proposer", self._propose_recommendation)
         workflow.add_node("devils_advocate", self._critique_recommendation)
         workflow.add_node("judge", self._evaluate_reasoning)
+        workflow.add_node("confidence_estimator", self._estimate_confidence)
 
         # Define edges
         workflow.set_entry_point("context_analyzer")
         workflow.add_edge("context_analyzer", "proposer")
         workflow.add_edge("proposer", "devils_advocate")
         workflow.add_edge("devils_advocate", "judge")
-        workflow.add_edge("judge", END)
+        workflow.add_edge("judge", "confidence_estimator")
+        workflow.add_edge("confidence_estimator", END)
 
         # Compile graph
         return workflow.compile()
@@ -110,7 +137,9 @@ class DecisionWorkflow:
             "context_analysis": None,
             "proposer_output": None,
             "devils_advocate_output": None,
-            "judge_output": None
+            "judge_output": None,
+            "confidence_output": None,
+            "final_recommendation": None
         }
 
         final_state = self.graph.invoke(initial_state)
