@@ -80,6 +80,27 @@ class JudgeOutput(BaseModel):
     reasoning_assessment: str = Field(..., description="Overall assessment of reasoning quality from both sides")
 
 
+class ConfidencePenalty(BaseModel):
+    """Schema for a confidence penalty."""
+    reason: str = Field(..., description="Human-readable reason for this penalty")
+    percentage_impact: int = Field(..., ge=0, le=100, description="Percentage points deducted from confidence")
+
+
+class ConfidenceImprovement(BaseModel):
+    """Schema for a confidence improvement (for v2+ comparisons)."""
+    reason: str = Field(..., description="Human-readable reason for this improvement")
+    percentage_impact: int = Field(..., ge=0, le=100, description="Percentage points added to confidence")
+
+
+class ConfidenceOutput(BaseModel):
+    """Output schema for Confidence Estimator."""
+    initial_confidence: int = Field(..., ge=0, le=100, description="Initial confidence from Proposer (0-100)")
+    adjusted_confidence: int = Field(..., ge=0, le=100, description="Adjusted confidence after penalties (0-100)")
+    delta: int = Field(..., description="Change in confidence (negative for penalties, positive for improvements)")
+    penalties: List[ConfidencePenalty] = Field(..., description="List of confidence penalties applied")
+    improvements: List[ConfidenceImprovement] = Field(default_factory=list, description="List of confidence improvements (for v2+ comparisons)")
+
+
 class DecisionRun(BaseModel):
     """Complete decision evaluation run record."""
     decision_id: str = Field(..., description="Unique decision identifier (dec_YYYYMMDD_<type>)")
@@ -91,6 +112,8 @@ class DecisionRun(BaseModel):
     proposer_output: Optional[ProposerOutput] = Field(None, description="Proposer recommendation output")
     devils_advocate_output: Optional[DevilsAdvocateOutput] = Field(None, description="Devil's Advocate critique output")
     judge_output: Optional[JudgeOutput] = Field(None, description="Judge evaluation output")
+    confidence_output: Optional[ConfidenceOutput] = Field(None, description="Confidence estimation output")
+    final_recommendation: Optional[str] = Field(None, description="Final recommendation: PROCEED, CONDITIONAL, or DELAY")
 
     class Config:
         json_schema_extra = {
@@ -131,4 +154,6 @@ class DecisionResponse(BaseModel):
     proposer_output: Optional[ProposerOutput] = Field(None, description="Proposer recommendation output")
     devils_advocate_output: Optional[DevilsAdvocateOutput] = Field(None, description="Devil's Advocate critique output")
     judge_output: Optional[JudgeOutput] = Field(None, description="Judge evaluation output")
+    confidence_output: Optional[ConfidenceOutput] = Field(None, description="Confidence estimation output")
+    final_recommendation: Optional[str] = Field(None, description="Final recommendation: PROCEED, CONDITIONAL, or DELAY")
     risk_breakdown: Optional[RiskBreakdown] = Field(None, description="Risk breakdown across dimensions")
