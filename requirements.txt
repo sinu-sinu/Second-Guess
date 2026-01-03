@@ -1,0 +1,25 @@
+# Core dependencies
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+
+# AI/ML
+langchain
+langgraph
+langchain-openai
+instructor
+openai
+
+# Database
+sqlalchemy
+
+# Utilities
+python-dotenv
+
+# Observability (when Phase 7)
+# langfuse==2.6.0
+
+# Testing (dev)
+pytest
+httpx
