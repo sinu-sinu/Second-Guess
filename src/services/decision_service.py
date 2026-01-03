@@ -44,7 +44,7 @@ class DecisionService:
         Returns:
             DecisionResponse with evaluation results
         """
-        # Run workflow (Context Analyzer -> Proposer)
+        # Run workflow (Context Analyzer -> Proposer -> Devil's Advocate)
         final_state = self.workflow.run(
             decision=decision_input.decision,
             context=decision_input.context
@@ -52,6 +52,7 @@ class DecisionService:
 
         context_analysis = final_state["context_analysis"]
         proposer_output = final_state["proposer_output"]
+        devils_advocate_output = final_state["devils_advocate_output"]
 
         # Generate decision ID (new decision gets version 1)
         decision_id = self._generate_decision_id(context_analysis.decision_type)
@@ -66,7 +67,8 @@ class DecisionService:
             decision=decision_input.decision,
             context_provided=decision_input.context,
             context_analysis=context_analysis,
-            proposer_output=proposer_output
+            proposer_output=proposer_output,
+            devils_advocate_output=devils_advocate_output
         )
 
         # Store in database
@@ -89,7 +91,9 @@ class DecisionService:
             decision=decision_run.decision,
             context_provided=decision_run.context_provided,
             context_analysis=decision_run.context_analysis,
-            proposer_output=decision_run.proposer_output
+            proposer_output=decision_run.proposer_output,
+            devils_advocate_output=decision_run.devils_advocate_output,
+            risk_breakdown=decision_run.devils_advocate_output.risk_breakdown if decision_run.devils_advocate_output else None
         )
 
     def get_decision(self, decision_id: str, version: int, db: Session) -> DecisionResponse:
@@ -111,5 +115,7 @@ class DecisionService:
             decision=decision_run.decision,
             context_provided=decision_run.context_provided,
             context_analysis=decision_run.context_analysis,
-            proposer_output=decision_run.proposer_output
+            proposer_output=decision_run.proposer_output,
+            devils_advocate_output=decision_run.devils_advocate_output,
+            risk_breakdown=decision_run.devils_advocate_output.risk_breakdown if decision_run.devils_advocate_output else None
         )
