@@ -1,6 +1,6 @@
 """Database models and connection setup."""
 from datetime import datetime
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, UniqueConstraint, Index
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
@@ -29,6 +29,12 @@ class DecisionRunDB(Base):
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
     input_json = Column(Text, nullable=False)  # Stores DecisionInput as JSON
     output_json = Column(Text, nullable=False)  # Stores complete evaluation output as JSON
+
+    # Add unique constraint on (decision_id, version) for version tracking
+    __table_args__ = (
+        UniqueConstraint('decision_id', 'version', name='uix_decision_version'),
+        Index('ix_decision_id_version', 'decision_id', 'version'),
+    )
 
 
 def get_db():
