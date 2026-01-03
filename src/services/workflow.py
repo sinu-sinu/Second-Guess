@@ -2,9 +2,10 @@
 from typing import TypedDict, Optional
 from langgraph.graph import StateGraph, END
 
-from src.models.schemas import ContextAnalysis, ProposerOutput
+from src.models.schemas import ContextAnalysis, ProposerOutput, DevilsAdvocateOutput
 from src.agents.context_analyzer import ContextAnalyzerAgent
 from src.agents.proposer import ProposerAgent
+from src.agents.devils_advocate import DevilsAdvocateAgent
 
 
 class DecisionState(TypedDict):
@@ -13,6 +14,7 @@ class DecisionState(TypedDict):
     context: Optional[str]
     context_analysis: Optional[ContextAnalysis]
     proposer_output: Optional[ProposerOutput]
+    devils_advocate_output: Optional[DevilsAdvocateOutput]
 
 
 class DecisionWorkflow:
@@ -22,6 +24,7 @@ class DecisionWorkflow:
         """Initialize workflow with agents."""
         self.context_analyzer = ContextAnalyzerAgent()
         self.proposer = ProposerAgent()
+        self.devils_advocate = DevilsAdvocateAgent()
         self.graph = self._build_graph()
 
     def _analyze_context(self, state: DecisionState) -> DecisionState:
@@ -43,6 +46,17 @@ class DecisionWorkflow:
         state["proposer_output"] = proposer_output
         return state
 
+    def _critique_recommendation(self, state: DecisionState) -> DecisionState:
+        """Node: Run Devil's Advocate Agent."""
+        devils_advocate_output = self.devils_advocate.critique(
+            decision=state["decision"],
+            context=state.get("context", "") or "",
+            context_analysis=state["context_analysis"],
+            proposer_output=state["proposer_output"]
+        )
+        state["devils_advocate_output"] = devils_advocate_output
+        return state
+
     def _build_graph(self) -> StateGraph:
         """Build the LangGraph workflow."""
         # Create graph
@@ -51,11 +65,13 @@ class DecisionWorkflow:
         # Add nodes
         workflow.add_node("context_analyzer", self._analyze_context)
         workflow.add_node("proposer", self._propose_recommendation)
+        workflow.add_node("devils_advocate", self._critique_recommendation)
 
         # Define edges
         workflow.set_entry_point("context_analyzer")
         workflow.add_edge("context_analyzer", "proposer")
-        workflow.add_edge("proposer", END)
+        workflow.add_edge("proposer", "devils_advocate")
+        workflow.add_edge("devils_advocate", END)
 
         # Compile graph
         return workflow.compile()
@@ -75,7 +91,8 @@ class DecisionWorkflow:
             "decision": decision,
             "context": context,
             "context_analysis": None,
-            "proposer_output": None
+            "proposer_output": None,
+            "devils_advocate_output": None
         }
 
         final_state = self.graph.invoke(initial_state)
