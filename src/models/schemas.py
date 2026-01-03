@@ -157,3 +157,33 @@ class DecisionResponse(BaseModel):
     confidence_output: Optional[ConfidenceOutput] = Field(None, description="Confidence estimation output")
     final_recommendation: Optional[str] = Field(None, description="Final recommendation: PROCEED, CONDITIONAL, or DELAY")
     risk_breakdown: Optional[RiskBreakdown] = Field(None, description="Risk breakdown across dimensions")
+
+
+class RiskDelta(BaseModel):
+    """Schema for risk reduction across dimensions."""
+    execution: int = Field(..., description="Change in execution risk (negative = improvement)")
+    market_customer: int = Field(..., description="Change in market & customer risk (negative = improvement)")
+    reputational: int = Field(..., description="Change in reputational risk (negative = improvement)")
+    opportunity_cost: int = Field(..., description="Change in opportunity cost risk (negative = improvement)")
+
+
+class VersionComparison(BaseModel):
+    """Schema for comparing two decision versions."""
+    decision_id: str = Field(..., description="The decision being compared")
+    v1: int = Field(..., description="First version number")
+    v2: int = Field(..., description="Second version number")
+    context_completeness_delta: int = Field(..., description="Change in context completeness (v2 - v1)")
+    confidence_delta: int = Field(..., description="Change in adjusted confidence (v2 - v1)")
+    risk_reduction: RiskDelta = Field(..., description="Risk reduction per dimension (v2 - v1, negative = improvement)")
+    resolved_missing_context: List[str] = Field(..., description="Context items that were missing in v1 but provided in v2")
+    remaining_missing_context: List[str] = Field(..., description="Context items still missing in v2")
+    new_missing_context: List[str] = Field(..., description="Context items missing in v2 but not in v1 (decision evolved)")
+
+
+class VersionSummary(BaseModel):
+    """Summary information for a decision version."""
+    version: int
+    timestamp: datetime
+    context_completeness: int = Field(..., description="Context completeness score (0-100)")
+    adjusted_confidence: int = Field(..., description="Adjusted confidence (0-100)")
+    final_recommendation: str = Field(..., description="Final recommendation: PROCEED, CONDITIONAL, or DELAY")
