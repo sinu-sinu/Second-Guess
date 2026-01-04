@@ -1,0 +1,85 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: second-guess-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-langfuse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-langfuse_password}
+      POSTGRES_DB: ${POSTGRES_DB:-langfuse}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-langfuse-models.sql:/docker-entrypoint-initdb.d/01-init-models.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-langfuse}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - second-guess-network
+    restart: unless-stopped
+
+  # Langfuse Observability Platform
+  langfuse:
+    image: langfuse/langfuse:2
+    container_name: second-guess-langfuse
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-langfuse}:${POSTGRES_PASSWORD:-langfuse_password}@postgres:5432/${POSTGRES_DB:-langfuse}
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-your-secret-key-change-this-in-production}
+      SALT: ${SALT:-your-salt-change-this-in-production}
+      TELEMETRY_ENABLED: ${TELEMETRY_ENABLED:-true}
+      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: ${LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES:-false}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - second-guess-network
+    restart: unless-stopped
+
+  # Second Guess FastAPI Application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: second-guess-api
+    environment:
+      # OpenAI Configuration
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+
+      # Database Configuration (PostgreSQL)
+      DATABASE_URL: postgresql://${POSTGRES_USER:-langfuse}:${POSTGRES_PASSWORD:-langfuse_password}@postgres:5432/second_guess
+
+      # Langfuse Configuration
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY}
+      LANGFUSE_HOST: http://langfuse:3000
+
+      # Application Settings
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      langfuse:
+        condition: service_started
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+    networks:
+      - second-guess-network
+    restart: unless-stopped
+
+networks:
+  second-guess-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
