@@ -1,6 +1,6 @@
 """Devil's Advocate agent implementation."""
 import instructor
-from openai import OpenAI
+from langfuse.openai import OpenAI  # Langfuse wrapper for automatic tracking
 import os
 from dotenv import load_dotenv
 

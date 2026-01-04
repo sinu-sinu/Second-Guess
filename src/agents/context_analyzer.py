@@ -1,7 +1,7 @@
 """Context Analyzer agent implementation."""
 from typing import List
 import instructor
-from openai import OpenAI
+from langfuse.openai import OpenAI  # Langfuse wrapper for automatic tracking
 from pydantic import Field
 import os
 from dotenv import load_dotenv
